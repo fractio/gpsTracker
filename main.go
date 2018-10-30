@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,42 +9,30 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/timshannon/bolthold"
 )
 
-// map[acc:[16.0]
-//  battery:[98.0]
-//  androidId:[a27642f982771040]
-//  activity:[]
-//  desc:[]
-//  spd:[0.0]
-//  time:[2018-10-29T20:30:47.000Z]
-//  serial:[ce011711bd1668d80c]
-//  sat:[9]
-//  dir:[0.0]
-//  prov:[gps]
-//  epoch:[1540845047]
-//  lat:[51.42925195758545]
-//  lon:[-0.10596947765469795]
-// alt:[159.1731263161311]]
+var store *bolthold.Store
 
 // Location stores the GPS coords
 type Location struct {
-	StartTime          time.Time `boltholdIndex:"StartTime"`
-	TimeStamp          time.Time
-	Accuracy           float64
-	Lat                float64
-	Lng                float64
-	Altitude           float64
-	Speed              float64
-	Serial             string `boltholdIndex:"Serial"`
-	NumberOfSatallites int
-	Direction          float64
-	Provider           string
+	StartTime          time.Time `json:"startTime" boltholdIndex:"StartTime"`
+	ClientTimeStamp    time.Time `json:"clientTimeStamp" boltholdIndex:"ClientTimeStamp"`
+	ServerTimeStamp    time.Time `json:"serverTimeStamp" boltholdIndex:"ServerTimeStamp"`
+	Accuracy           float64   `json:"accuracy"`
+	Lat                float64   `json:"lat"`
+	Lng                float64   `json:"lng"`
+	Altitude           float64   `json:"sltitude"`
+	Speed              float64   `json:"dpeed"`
+	Serial             string    `json:"serial" boltholdIndex:"Serial"`
+	NumberOfSatallites int       `json:"numberOfSatallites"`
+	Direction          float64   `json:"direction"`
+	Provider           string    `json:"provider"`
 }
 
+// Log handles /log and writes to the bolthold
 func Log(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
-	fmt.Println(params)
 	startTimeInt, err := strconv.ParseInt(params["epoch"][0], 10, 64)
 	timestamp, err := time.Parse(time.RFC3339, params["time"][0])
 	acc, err := strconv.ParseFloat(params["acc"][0], 64)
@@ -53,10 +42,15 @@ func Log(w http.ResponseWriter, r *http.Request) {
 	spd, err := strconv.ParseFloat(params["spd"][0], 64)
 	sat, err := strconv.ParseInt(params["sat"][0], 10, 0)
 	dir, err := strconv.ParseFloat(params["dir"][0], 64)
-	fmt.Println(err)
-	result := Location{
+	if err != nil {
+		fmt.Println("Err")
+		fmt.Println(err)
+	}
+
+	location := Location{
 		StartTime:          time.Unix(startTimeInt, 0),
-		TimeStamp:          timestamp,
+		ClientTimeStamp:    timestamp,
+		ServerTimeStamp:    time.Now(),
 		Accuracy:           acc,
 		Lat:                lat,
 		Lng:                lng,
@@ -67,33 +61,49 @@ func Log(w http.ResponseWriter, r *http.Request) {
 		Direction:          dir,
 		Provider:           params["prov"][0],
 	}
+	key := location.Serial + "_" + strconv.FormatInt(location.StartTime.Unix(), 10) + "_" + strconv.FormatInt(location.ServerTimeStamp.UnixNano(), 10)
+	err = store.Insert(key, location)
+	fmt.Println(key)
 
-	fmt.Printf("%#v", result)
+	if err != nil {
+		fmt.Println("Err")
+		fmt.Println(err)
+		fmt.Println(key)
+	}
+
+	w.WriteHeader(http.StatusOK)
+
+}
+
+//All returns all bolts for a thing
+func All(w http.ResponseWriter, r *http.Request) {
+	var result []Location
+	err := store.Find(&result, bolthold.Where("Serial").Eq("ce011711bd1668d80c"))
+	if err != nil {
+		fmt.Println("Err")
+		fmt.Println(err)
+	}
+
+	fmt.Println(result)
+	json.NewEncoder(w).Encode(result)
 
 }
 
 func main() {
 	fmt.Println("GPS Tracking server")
 	fmt.Println("Open Bolthold")
-
-	// store, err := bolthold.Open("gpsTracker.db", 0666, nil)
-	// if err != nil {
-	// 	fmt.Println("Err")
-	// 	fmt.Println(err)
-	// }
-	// err = store.Insert("key", &Item{
-	// 	Name:    "Test Name",
-	// 	Created: time.Now(),
-	// })
-	// if err != nil {
-	// 	fmt.Println("Err")
-	// 	fmt.Println(err)
-	// }
+	var err error
+	store, err = bolthold.Open("gpsTracker.db", 0666, nil)
+	if err != nil {
+		fmt.Println("Err")
+		fmt.Println(err)
+	}
 
 	fmt.Println("Start router")
 
 	router := mux.NewRouter()
 	router.HandleFunc("/log", Log).Methods("GET")
+	router.HandleFunc("/all", All).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8000", router))
 }
