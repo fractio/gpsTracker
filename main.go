@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/timshannon/bolthold"
 )
@@ -22,10 +23,10 @@ type Location struct {
 	Accuracy           float64   `json:"accuracy"`
 	Lat                float64   `json:"lat"`
 	Lng                float64   `json:"lng"`
-	Altitude           float64   `json:"sltitude"`
-	Speed              float64   `json:"dpeed"`
+	Altitude           float64   `json:"altitude"`
+	Speed              float64   `json:"speed"`
 	Serial             string    `json:"serial" boltholdIndex:"Serial"`
-	NumberOfSatallites int       `json:"numberOfSatallites"`
+	NumberOfSatellites int       `json:"numberOfSatellites"`
 	Direction          float64   `json:"direction"`
 	Provider           string    `json:"provider"`
 }
@@ -57,7 +58,7 @@ func Log(w http.ResponseWriter, r *http.Request) {
 		Altitude:           alt,
 		Speed:              spd,
 		Serial:             params["serial"][0],
-		NumberOfSatallites: int(sat),
+		NumberOfSatellites: int(sat),
 		Direction:          dir,
 		Provider:           params["prov"][0],
 	}
@@ -78,13 +79,12 @@ func Log(w http.ResponseWriter, r *http.Request) {
 //All returns all bolts for a thing
 func All(w http.ResponseWriter, r *http.Request) {
 	var result []Location
-	err := store.Find(&result, bolthold.Where("Serial").Eq("ce011711bd1668d80c"))
+	err := store.Find(&result, bolthold.Where("Serial").Eq("ce011711bd1668d80c").Index("Serial"))
 	if err != nil {
 		fmt.Println("Err")
 		fmt.Println(err)
 	}
 
-	fmt.Println(result)
 	json.NewEncoder(w).Encode(result)
 
 }
@@ -105,5 +105,5 @@ func main() {
 	router.HandleFunc("/log", Log).Methods("GET")
 	router.HandleFunc("/all", All).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS()(router)))
 }
