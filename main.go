@@ -93,7 +93,7 @@ func main() {
 	fmt.Println("GPS Tracking server")
 	fmt.Println("Open Bolthold")
 	var err error
-	store, err = bolthold.Open("gpsTracker.db", 0666, nil)
+	store, err = bolthold.Open("./data/db.db", 0666, nil)
 	if err != nil {
 		fmt.Println("Err")
 		fmt.Println(err)

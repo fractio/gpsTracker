@@ -1,4 +1,4 @@
 ./client/node_modules
 ./client/build
-*.db
+/data/*.db
 main
