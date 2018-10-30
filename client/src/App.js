@@ -17,7 +17,7 @@ class App extends Component {
     }
   };
   componentWillMount() {
-    axios.get("http://localhost:8000/all").then(response => {
+    axios.get("/all").then(response => {
       this.setState({
         gpsLocations: response.data,
         viewport: {

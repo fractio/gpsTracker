@@ -104,6 +104,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/log", Log).Methods("GET")
 	router.HandleFunc("/all", All).Methods("GET")
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./client/build")))
 
 	log.Fatal(http.ListenAndServe(":8000", handlers.CORS()(router)))
 }
