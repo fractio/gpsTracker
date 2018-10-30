@@ -1,4 +1,10 @@
-sudo: required
+sudo: true
+dist: trusty
 
-services:
-  - docker
+jobs:
+  include:
+    - stage: build docker image
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker build -t fractio/gps-tracker .
+        - docker push fractio/gps-tracker
