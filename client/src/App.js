@@ -4,8 +4,15 @@ import "./App.css";
 import axios from "axios";
 import moment from "moment";
 import ReactMapGL, { Marker, Popup, NavigationControl } from "react-map-gl";
+import { Location } from "./models";
 
-class App extends Component {
+type Props = {};
+
+type State = {
+  gpsLocations: Array<Location>,
+  viewport: any
+};
+class App extends Component<Props, State> {
   state = {
     gpsLocations: [],
     viewport: {
@@ -29,7 +36,7 @@ class App extends Component {
     });
   }
   render() {
-    const { gpsLocations } = this.state;
+    const gpsLocations: Array<Location> = this.state.gpsLocations;
 
     return (
       <div>
@@ -39,7 +46,7 @@ class App extends Component {
             {...this.state.viewport}
             onViewportChange={viewport => this.setState({ viewport })}
           >
-            {gpsLocations.map((location, index) => (
+            {gpsLocations.map((location: Location, index) => (
               <Marker
                 key={`marker-index`}
                 longitude={location.lng}

@@ -15,22 +15,6 @@ import (
 
 var store *bolthold.Store
 
-// Location stores the GPS coords
-type Location struct {
-	StartTime          time.Time `json:"startTime" boltholdIndex:"StartTime"`
-	ClientTimeStamp    time.Time `json:"clientTimeStamp" boltholdIndex:"ClientTimeStamp"`
-	ServerTimeStamp    time.Time `json:"serverTimeStamp" boltholdIndex:"ServerTimeStamp"`
-	Accuracy           float64   `json:"accuracy"`
-	Lat                float64   `json:"lat"`
-	Lng                float64   `json:"lng"`
-	Altitude           float64   `json:"altitude"`
-	Speed              float64   `json:"speed"`
-	Serial             string    `json:"serial" boltholdIndex:"Serial"`
-	NumberOfSatellites int       `json:"numberOfSatellites"`
-	Direction          float64   `json:"direction"`
-	Provider           string    `json:"provider"`
-}
-
 // Log handles /log and writes to the bolthold
 func Log(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()

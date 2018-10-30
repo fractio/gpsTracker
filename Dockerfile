@@ -12,7 +12,7 @@ RUN yarn build
 
 WORKDIR /app
 RUN go get -d -v ./...
-RUN go build main.go
+RUN go build -o main ./...
 
 EXPOSE 8000
 CMD ["./main"]
