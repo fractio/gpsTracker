@@ -14,4 +14,5 @@ WORKDIR /app
 RUN go get -d -v ./...
 RUN go build main.go
 
+EXPOSE 8000
 CMD ["./main"]
