@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/paulmach/go.geojson"
 	"github.com/timshannon/bolthold"
 )
 
@@ -73,6 +74,27 @@ func All(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//AllGeoJSON returns all bolts for a thing in geojson
+func AllGeoJSON(w http.ResponseWriter, r *http.Request) {
+	var locations []Location
+	err := store.Find(&locations, bolthold.Where("Serial").Eq("ce011711bd1668d80c").Index("Serial"))
+	if err != nil {
+		fmt.Println("Err")
+		fmt.Println(err)
+	}
+
+	var coords = make([][]float64, len(locations))
+	for i, location := range locations {
+		coords[i] = []float64{location.Lng, location.Lat}
+	}
+
+	fc := geojson.NewFeatureCollection()
+	fc.AddFeature(geojson.NewLineStringFeature(coords))
+	rawJSON, err := fc.MarshalJSON()
+
+	w.Write(rawJSON)
+
+}
 func main() {
 	fmt.Println("GPS Tracking server")
 	fmt.Println("Open Bolthold")
@@ -88,6 +110,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/log", Log).Methods("GET")
 	router.HandleFunc("/all", All).Methods("GET")
+	router.HandleFunc("/all-geo-json", AllGeoJSON).Methods("GET")
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./client/build")))
 
 	log.Fatal(http.ListenAndServe(":8000", handlers.CORS()(router)))
