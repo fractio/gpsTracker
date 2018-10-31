@@ -13,7 +13,9 @@ The purpose of this application is to test some tech
 
 ### Make types for front end from Location struct
 
+```bash
 typewriter -file ./Location.go -lang flow -v -out ./client/src/models.js
+```
 
 ### run frontend in dev mode
 
