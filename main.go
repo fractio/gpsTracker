@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/paulmach/go.geojson"
 	"github.com/timshannon/bolthold"
+	bolt "go.etcd.io/bbolt"
 )
 
 var store *bolthold.Store
@@ -95,6 +98,34 @@ func AllGeoJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(rawJSON)
 
 }
+
+//Tracks returns all bolts for a thing in geojson
+func Tracks(w http.ResponseWriter, r *http.Request) {
+	db := store.Bolt()
+	db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("_index:Location:StartTime"))
+
+		c := b.Cursor()
+
+		var startTimes []time.Time
+
+		for k, _ := c.First(); k != nil; k, _ = c.Next() {
+			// Create a decoder and receive a value.
+			dec := gob.NewDecoder(bytes.NewReader(k))
+			var v time.Time
+			err := dec.Decode(&v)
+			if err != nil {
+				log.Fatal("decode:", err)
+			}
+			startTimes = append(startTimes, v)
+		}
+		json.NewEncoder(w).Encode(startTimes)
+
+		return nil
+	})
+
+}
+
 func main() {
 	fmt.Println("GPS Tracking server")
 	fmt.Println("Open Bolthold")
@@ -111,6 +142,7 @@ func main() {
 	router.HandleFunc("/log", Log).Methods("GET")
 	router.HandleFunc("/all", All).Methods("GET")
 	router.HandleFunc("/all-geo-json", AllGeoJSON).Methods("GET")
+	router.HandleFunc("/tracks", Tracks).Methods("GET")
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./client/build")))
 
 	log.Fatal(http.ListenAndServe(":8000", handlers.CORS()(router)))
